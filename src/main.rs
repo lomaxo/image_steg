@@ -1,6 +1,7 @@
 extern crate image;
 
-use std::fmt::Result;
+//use std::fmt::Result;
+use std::env::args;
 
 use image::{GenericImageView, ImageBuffer, RgbImage};
 
@@ -27,7 +28,7 @@ fn write_message_to_image(image_path: &str, message: &str) -> image::ImageBuffer
             if index < message.len() * 8 {
                 let bit = get_bit(message, index as usize);
                 pixel[0] = (pixel[0] & 0xfe) | bit;
-                pixel[1] = 255;
+                //pixel[1] = 255;
             } else {
                 pixel[0] = (pixel[0] & 0xfe) | 1;
             }
@@ -66,15 +67,64 @@ fn read_message_from_image(image_path: &str) -> String {
 
 }
 
+fn usage() {
+    println!("image_steg encode <path to source image> <message> <path to output image>");
+    println!("image_steg decode <path to source image>");
+}
+
 fn main() {
-    
-    let message_image = write_message_to_image("img/landscape.png", "Hello. This is a message.");
+    let mut arguments = args().skip(1);
+    //let max_prime:  usize = arguments[0].parse().unwrap();
+    let action: String = match arguments.next() {
+        Some(a) => { a },
+        None => {
+            usage();
+            return;
+        }
+    };
+    if action == "encode" {
+        let image_path: String = match arguments.next() {
+            Some(a) => { a },
+            None => {
+                usage();
+                return;
+            }
+        };
+        let message: String = match arguments.next() {
+            Some(a) => { a },
+            None => {
+                usage();
+                return;
+            }
+        };
+        let outputfile: String = match arguments.next() {
+            Some(a) => { a },
+            None => {
+                usage();
+                return;
+            }
+        };
+        println!("Encoding...");
+        let message_image = write_message_to_image(&image_path, &message);
 
-    message_image.save("img/test.png").unwrap();
+        message_image.save(outputfile).unwrap();
 
-    let message = read_message_from_image("img/test.png");
-
-    println!("{}", message);
-
+    }
+    else if action == "decode" {
+        println!("Decoding");
+        let image_path: String = match arguments.next() {
+            Some(a) => { a },
+            None => {
+                usage();
+                return;
+            }
+        };
+        let message = read_message_from_image(&image_path);
+        println!("{}", message)
+    }
+    else {
+        usage();
+        return;
+    }
 
 }
