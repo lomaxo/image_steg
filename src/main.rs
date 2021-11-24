@@ -1,13 +1,9 @@
-extern crate image;
-extern crate clap;
-
-use clap::{Arg, App};
-
-//use std::fmt::Result;
-use std::env::args;
+//use std::{env::args, path::Path};
 
 use image::{GenericImageView, ImageBuffer, RgbImage};
 
+use std::{fmt::Debug, path::PathBuf};
+use structopt::StructOpt;
 
 
 
@@ -19,7 +15,7 @@ fn get_bit(message: &str, index: usize) -> u8 {
     bit
 }
 
-fn write_message_to_image(image_path: &str, message: &str) -> image::ImageBuffer<image::Rgb<u8>, std::vec::Vec<u8>> {
+fn write_message_to_image(image_path: &PathBuf, message: &str) -> image::ImageBuffer<image::Rgb<u8>, std::vec::Vec<u8>> {
     let input_img = image::open(image_path).unwrap();
     let (width, height) = input_img.dimensions();
     let mut output_img: RgbImage = ImageBuffer::new(width, height);
@@ -42,7 +38,7 @@ fn write_message_to_image(image_path: &str, message: &str) -> image::ImageBuffer
     output_img
 }
 
-fn read_message_from_image(image_path: &str) -> String {
+fn read_message_from_image(image_path: &PathBuf) -> String {
     // Extracting message
     let mut message_image = image::open(image_path).unwrap().to_rgb8();
     let (width, height) = message_image.dimensions();
@@ -70,70 +66,46 @@ fn read_message_from_image(image_path: &str) -> String {
 
 }
 
-fn usage() {
-    println!("image_steg encode <path to source image> <message> <path to output image>");
-    println!("image_steg decode <path to source image>");
-}
 
-
-fn string_or_usage(arg: Option<String>) -> String {
-    match arg {
-        Some(a) => { a},
-        None => {
-            usage();
-            std::process::exit(0);
-            "".to_string()
-        }
-    }
+#[derive(StructOpt, Debug)]
+#[structopt(name = "image_steg")]
+/// A commange line tool to hide messages inside image files.
+enum Opt {
+    /// Hide messages inside image files
+    Encode{
+        /// The source image to use
+        #[structopt(parse(from_os_str))] 
+        source: PathBuf,   
+        /// Output image file
+        #[structopt(parse(from_os_str))] 
+        output: PathBuf, 
+        /// The message string
+        #[structopt(short="m", long="message")]
+        message: String,       
+    },
+    /// Read messages from image files
+    Decode {
+        /// Image file containing the message
+        #[structopt(parse(from_os_str))] 
+        image: PathBuf,
+    },
 }
 
 
 fn main() {
-    let mut arguments = args().skip(1);
-    let action: String = string_or_usage(arguments.next());
-    if action == "encode" {
-        let image_path: String = match arguments.next() {
-            Some(a) => { a },
-            None => {
-                usage();
-                return;
-            }
-        };
-        let message: String = match arguments.next() {
-            Some(a) => { a },
-            None => {
-                usage();
-                return;
-            }
-        };
-        let outputfile: String = match arguments.next() {
-            Some(a) => { a },
-            None => {
-                usage();
-                return;
-            }
-        };
-        println!("Encoding...");
-        let message_image = write_message_to_image(&image_path, &message);
-
-        message_image.save(outputfile).unwrap();
-
+    let opt = Opt::from_args();
+    //println!("{:?}", opt);
+    match opt {
+        Opt::Encode {source, output, message} => {
+            println!("Encoding...");
+            let message_image = write_message_to_image(&source, &message);
+            message_image.save(&output).expect("Failed to create output image.");
+            println!("Message saved to {:?}", output);
+        },
+        Opt::Decode {image} => {
+            println!("Decoding from {:?}...", image);
+            let message = read_message_from_image(&image);
+            println!("Message: {}", message)
+        }
     }
-    else if action == "decode" {
-        println!("Decoding");
-        let image_path: String = match arguments.next() {
-            Some(a) => { a },
-            None => {
-                usage();
-                return;
-            }
-        };
-        let message = read_message_from_image(&image_path);
-        println!("{}", message)
-    }
-    else {
-        usage();
-        return;
-    }
-
 }
