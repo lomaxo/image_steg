@@ -1,4 +1,7 @@
 extern crate image;
+extern crate clap;
+
+use clap::{Arg, App};
 
 //use std::fmt::Result;
 use std::env::args;
@@ -72,16 +75,22 @@ fn usage() {
     println!("image_steg decode <path to source image>");
 }
 
-fn main() {
-    let mut arguments = args().skip(1);
-    //let max_prime:  usize = arguments[0].parse().unwrap();
-    let action: String = match arguments.next() {
-        Some(a) => { a },
+
+fn string_or_usage(arg: Option<String>) -> String {
+    match arg {
+        Some(a) => { a},
         None => {
             usage();
-            return;
+            std::process::exit(0);
+            "".to_string()
         }
-    };
+    }
+}
+
+
+fn main() {
+    let mut arguments = args().skip(1);
+    let action: String = string_or_usage(arguments.next());
     if action == "encode" {
         let image_path: String = match arguments.next() {
             Some(a) => { a },
